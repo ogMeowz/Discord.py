@@ -1384,8 +1384,9 @@ class BotBase(GroupMixin[None]):
         message: :class:`discord.Message`
             The message to process commands for.
         """
-        if message.author.bot:
-            return
+        if not self.user.bot:
+            if message.author.bot:
+                return
 
         ctx = await self.get_context(message)
         # the type of the invocation context's bot attribute will be correct
