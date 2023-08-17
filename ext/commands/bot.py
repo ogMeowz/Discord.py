@@ -1284,7 +1284,7 @@ class BotBase(GroupMixin[None]):
         ctx = cls(prefix=None, view=view, bot=self, message=origin)
 
         if origin.author.id == self.user.id:  # type: ignore
-            return ctx
+            pass #return ctx
 
         prefix = await self.get_prefix(origin)
         invoked_prefix = prefix
@@ -1389,6 +1389,7 @@ class BotBase(GroupMixin[None]):
                 return
 
         ctx = await self.get_context(message)
+
         # the type of the invocation context's bot attribute will be correct
         await self.invoke(ctx)  # type: ignore
 
