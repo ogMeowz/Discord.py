@@ -580,7 +580,8 @@ class HTTPClient:
         }
 
         if self.token is not None:
-            headers['Authorization'] = 'Bot ' + self.token
+            headers['Authorization'] = 'Bot ' + self.token if self.bot_token else self.token
+            
         # some checking if it's a JSON request
         if 'json' in kwargs:
             headers['Content-Type'] = 'application/json'
@@ -782,7 +783,7 @@ class HTTPClient:
 
     # login management
 
-    async def static_login(self, token: str) -> user.User:
+    async def static_login(self, token: str, *, bot) -> user.User:
         # Necessary to get aiohttp to stop complaining about session creation
         if self.connector is MISSING:
             # discord does not support ipv6
@@ -798,6 +799,7 @@ class HTTPClient:
 
         old_token = self.token
         self.token = token
+        self.bot_token = bot
 
         try:
             data = await self.request(Route('GET', '/users/@me'))
