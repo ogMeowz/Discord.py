@@ -577,7 +577,7 @@ class Client:
 
     # login state management
 
-    async def login(self, token: str) -> None:
+    async def login(self, token: str, *, bot=True) -> None:
         """|coro|
 
         Logs in the client with the specified credentials and
@@ -609,14 +609,19 @@ class Client:
             raise TypeError(f'expected token to be a str, received {token.__class__.__name__} instead')
         token = token.strip()
 
-        data = await self.http.static_login(token)
-        self._connection.user = ClientUser(state=self._connection, data=data)
-        self._application = await self.application_info()
-        if self._connection.application_id is None:
-            self._connection.application_id = self._application.id
+        data = await self.http.static_login(token, bot=bot)
 
-        if not self._connection.application_flags:
-            self._connection.application_flags = self._application.flags
+        self._connection.user = ClientUser(state=self._connection, data=data)
+
+        if bot:
+            
+            self._application = await self.application_info()
+
+            if self._connection.application_id is None:
+                self._connection.application_id = self._application.id
+
+            if not self._connection.application_flags:
+                self._connection.application_flags = self._application.flags
 
         await self.setup_hook()
 
@@ -753,7 +758,7 @@ class Client:
         self._connection.clear()
         self.http.clear()
 
-    async def start(self, token: str, *, reconnect: bool = True) -> None:
+    async def start(self, *args, **kwargs) -> None:
         """|coro|
 
         A shorthand coroutine for :meth:`login` + :meth:`connect`.
@@ -774,19 +779,17 @@ class Client:
         TypeError
             An unexpected keyword argument was received.
         """
-        await self.login(token)
+        bot = kwargs.pop('bot', True)
+        reconnect = kwargs.pop('reconnect', True)
+
+        if kwargs:
+            raise TypeError("unexpected keyword argument(s) %s" % list(kwargs.keys()))
+
+        await self.login(*args, bot=bot)        
         await self.connect(reconnect=reconnect)
 
-    def run(
-        self,
-        token: str,
-        *,
-        reconnect: bool = True,
-        log_handler: Optional[logging.Handler] = MISSING,
-        log_formatter: logging.Formatter = MISSING,
-        log_level: int = MISSING,
-        root_logger: bool = False,
-    ) -> None:
+    def run(self, *args: Any, **kwargs: Any) -> None:
+
         """A blocking call that abstracts away the event loop
         initialisation from you.
 
@@ -844,17 +847,23 @@ class Client:
             .. versionadded:: 2.0
         """
 
+        # reconnect: bool = True,
+        # log_handler: Optional[logging.Handler] = MISSING,
+        # log_formatter: logging.Formatter = MISSING,
+        # log_level: int = MISSING,
+        # root_logger: bool = False,
+
         async def runner():
             async with self:
-                await self.start(token, reconnect=reconnect)
-
-        if log_handler is not None:
-            utils.setup_logging(
-                handler=log_handler,
-                formatter=log_formatter,
-                level=log_level,
-                root=root_logger,
-            )
+                await self.start(*args, **kwargs)
+                
+        # if log_handler is not None:
+        #     utils.setup_logging(
+        #         handler=log_handler,
+        #         formatter=log_formatter,
+        #         level=log_level,
+        #         root=root_logger,
+        #     )
 
         try:
             asyncio.run(runner())
